@@ -1,0 +1,53 @@
+/*
+ *  @class - UnravelStats
+ *  @author - Elliott <elliott@appitek.com>
+ *  @desc - Handles the FMA for Unravel which keeps track of counts
+ *    of configurations and number of renders made
+ */
+public without sharing class UnravelStats {
+    
+    
+  /*
+   *  @method - addStat()
+   *  @desc - Adds 1 to a given FMA stat
+   * 
+   *  @stats:
+   *    - aptk_unravel__count_configurations
+   *    - aptk_unravel__stat_render
+   */
+  public static void addStat(String statName) {
+    updateStat(statName, null, false);
+  }
+    
+    
+  /*
+   *  @method - updateCounts()
+   *  @desc - Updates the counts for the webhook and webhook group objects,
+   *    which helps feed back license models
+   */
+  @future
+  public static void updateCounts() {
+    // ignore for this org or it messes up the packages
+    if (UserInfo.getOrganizationId() != '00D3z000002LRhjEAG' || (UserInfo.getOrganizationId() == '00D3z000002LRhjEAG' && Test.isRunningTest() == true)) {
+      Integer configs = Database.countQuery('SELECT count() FROM aptk_unravel__Unravel_Configuration__c');
+      if (configs != null && configs > 0) updateStat('aptk_unravel__count_configurations', configs, true);
+    }
+  }
+    
+    
+  /*
+   *  @method - updateStat()
+   *  @desc - Updates a given stat with either +1, +value, or with the value given
+   */
+  public static void updateStat(String statName, Integer val, Boolean overide) {
+    try {
+      Integer statv = overide == true ? val : val != null ? FeatureManagement.checkPackageIntegerValue(statName) + val : FeatureManagement.checkPackageIntegerValue(statName) + 1;
+      System.debug(statName + ' = ' + statv);
+      if (UserInfo.getOrganizationId() != '00D3z000002LRhjEAG' && Test.isRunningTest() == false) FeatureManagement.setPackageIntegerValue(statName, statv);
+    } catch(Exception e) {
+      System.debug(e.getMessage());
+    }
+  }
+    
+
+}

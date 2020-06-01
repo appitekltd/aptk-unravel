@@ -1,0 +1,22 @@
+/*
+ *  @class - UnravelPostInstall
+ *  @author - Elliott <elliott@appitek.com>
+ *  @desc - Post install actions for Unravel
+ */
+global without sharing class UnravelPostInstall implements InstallHandler {
+    
+  global void onInstall(InstallContext context) {
+    
+    // when a sandbox is refreshed it inherits the parent counts which we don't want!
+    Version ver = context.previousVersion();
+    Organization org = [SELECT Id, IsSandbox FROM Organization LIMIT 1];
+    if ((org.IsSandbox == true && ver == null) || Test.isRunningTest() == true) {
+      FeatureManagement.setPackageIntegerValue('aptk_unravel__count_configurations', 0);
+      FeatureManagement.setPackageIntegerValue('aptk_unravel__stat_render', 0);
+    }
+      
+    // update base counts on install / upgrade
+    UnravelStats.updateCounts();
+  }
+    
+}

@@ -1,0 +1,284 @@
+<apex:page controller="UnravelCore" showHeader="false" sidebar="false" standardStylesheets="false" applyBodyTag="false" applyHtmlTag="false">
+
+	<head>
+    <script type="text/javascript" src="{!URLFOR($Resource.UnravellerResources, 'js/libs/three.js')}"></script>
+    <script type="text/javascript" src="{!URLFOR($Resource.UnravellerResources, 'js/libs/vue.js')}"></script>
+    <script type="text/javascript" src="{!URLFOR($Resource.UnravellerResources, 'js/libs/three-orbit-controls.js')}"></script>
+    <script type="text/javascript" src="{!URLFOR($Resource.UnravellerResources, 'js/libs/three-transform-controls.js')}"></script>
+    <script type="text/javascript" src="{!URLFOR($Resource.UnravellerResources, 'js/libs/slds-colors.js')}"></script>
+		<link type="text/css" rel="stylesheet" href="{!URLFOR($Resource.UnravellerResources, 'css/style.css')}"/>
+		<link type="text/css" rel="stylesheet" href="{!URLFOR($Resource.UnravellerSLDSResources, 'slds/assets/styles/salesforce-lightning-design-system.css')}"/>
+		<title>Unraveller</title>
+  </head>
+  
+	<body>
+
+
+    <div class="unravel" id="unravel">
+
+      <div v-if="preview && popup.selection == false" class="unravel-preview slds-card" v-bind-class="{'_object': preview.links }">
+        <div class="slds-text-title_caps">{{ preview.links ? 'Object Details' : 'Link Details'}}</div>
+        <p style="color: #1589ee">{{ preview.label }}</p>
+        <i><p>{{ preview.name }}</p></i>
+        <div v-if="!preview.links">
+          <br/>
+          <p>Relationship from {{ preview.object }} to {{ preview.target }}</p>
+        </div>
+        <div v-if="previewRelationships.length > 0">
+          <br/>
+          <div class="slds-text-title_caps">Relationships</div>
+          <p v-for="l in previewRelationships">{{ l.target }} ({{ l.name }})</p>
+        </div>
+        <div v-if="previewChildren.length > 0">
+          <br/>
+          <div class="slds-text-title_caps">Children</div>
+          <p v-for="l in previewChildren">{{ l.object }} ({{ l.name }})</p>
+        </div>
+      </div>
+
+      <div v-if="loading.generic == true" class="slds-spinner_container" style="z-index: 100000000">
+        <div v-if="rendered == false" role="status" class="slds-spinner slds-spinner_medium">
+          <span class="slds-assistive-text">Loading</span>
+          <div class="slds-spinner__dot-a"></div>
+          <div class="slds-spinner__dot-b"></div>
+        </div>
+      </div>
+
+      <div v-if="loading.objects == true" class="slds-spinner_container" v-bind-class="{'alt': rendered == true}">
+        <div v-if="rendered == false" role="status" class="slds-spinner slds-spinner_medium slds-spinner_inverse">
+          <span class="slds-assistive-text">Loading</span>
+          <div class="slds-spinner__dot-a"></div>
+          <div class="slds-spinner__dot-b"></div>
+        </div>
+        <span style="color: white">Loading data, this may take a few minutes..</span>
+      </div>
+
+
+      <table v-if="popup.error == true" class="unravel-selection">
+        <tr>
+          <td>
+            <div class="slds-card">
+              <div class="slds-text-title_caps" style="margin-bottom: 5px;">There was an issue</div>
+              <p style="margin-bottom: 10px" v-if="configurations.length == 0">
+                There was an issue with Unravel, please check the message below:
+              </p>
+              <p>
+                {{ error }}
+              </p>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+
+      <table v-if="loading.objects == false && popup.selection == true" class="unravel-selection">
+        <tr>
+          <td>
+            <div class="slds-card">
+              <div class="slds-text-title_caps" style="margin-bottom: 5px;">Get Started</div>
+              <p style="margin-bottom: 10px" v-if="configurations.length == 0">
+                Create a new configuration to begin.
+              </p>
+              <p v-if="configurations.length > 0">
+                Load an existing Unravel configuration or create a new one below.
+              </p>
+              <ul v-if="configurations.length > 0" class="unravel-options">
+                <li v-on-click="loadConfiguration(c)" v-for="(c, i) in configurations">
+                  {{ c.Name }} [{{ c.aptk_unravel__Target__c }}]
+                  <a v-on-click.stop="deleteConfiguration(c, i)" style="float: right;" class="slds-link">Remove</a>
+                </li>
+              </ul>
+              <button v-if="!configuration.Id" style="width: 100%" class="slds-button slds-button--brand" v-on-click.stop="loadMetadata()">Create New Configuration</button>
+              <button v-if="configuration.Id" style="width: 100%" class="slds-button slds-button--brand" v-on-click.stop="loadMetadata(true)">Create New Configuration</button>
+              <button v-if="configuration.Id && loading.generic == false" v-on-click="closePopups()"  style="margin-top: 10px; width: 100%" class="slds-button slds-button--neutral">
+                Cancel
+              </button>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+
+      <table v-if="loading.objects == false && popup.create == true" class="unravel-selection">
+        <tr>
+          <td>
+            <div class="slds-card">
+              <div class="slds-text-title_caps" style="margin-bottom: 5px;">{{ popup.edit == true ? 'Update' : 'Create' }} configuration</div>
+              <p>
+                Select the objects you would like to unravel below. 
+                <br/>
+                Click an object to select / remove it.
+                <br/><br/>
+                From the selected objects you also need to specify a target object for Unravel to base the data model generation on.
+              </p>
+
+              <div style="margin-top: 10px" class="slds-form-element">
+                <label class="slds-form-element__label">Configuration Name</label>
+                <div class="slds-form-element__control">
+                  <input class="slds-input" v-model="name"/>
+                </div>
+              </div>
+
+              <div style="margin-top: 10px" class="slds-form-element" role="group" aria-labelledby="picklist-group-label">
+                <div class="slds-form-element__control">
+                  <div class="slds-dueling-list">
+                    
+                    <div class="slds-dueling-list__column">
+                      <span class="slds-form-element__label">All Objects</span>
+                        
+                      <div class="slds-form-element">
+                        <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon_left">
+                          <img class="slds-icon slds-input__icon slds-input__icon_left slds-icon-text-default" src="{!URLFOR($Resource.UnravellerSLDSResources, 'slds/assets/icons/utility/search_60.png')}"/>
+                          <input v-model="search.all" type="text" placeholder="Search objects.." class="slds-input" />
+                        </div>
+                      </div>
+
+                      <div class="slds-dueling-list__options">
+
+                        <ul class="slds-listbox slds-listbox_vertical">
+
+                          <li v-on-click="selectObject(object)" v-for="object in sortedAllObjects" class="slds-listbox__item">
+                            <div class="slds-listbox__option slds-listbox__option_plain slds-media slds-media_small slds-media_inline">
+                              <span class="slds-media__body">
+                                <img src="{!URLFOR($Resource.UnravellerSLDSResources, 'slds/assets/icons/utility/add_60.png')}"/>
+                                <span class="slds-truncate">{{ object.name }}</span>
+                              </span>
+                            </div>
+                          </li>
+                          
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div class="slds-dueling-list__column">
+                      <div style="width: 20px"></div>
+                    </div>
+                    
+                    <div class="slds-dueling-list__column">
+                      <span class="slds-form-element__label">Selected Objects</span>
+                        
+                      <div class="slds-form-element">
+                        <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon_left">
+                          <img class="slds-icon slds-input__icon slds-input__icon_left slds-icon-text-default" src="slds/assets/icons/utility/search_60.png"/>
+                          <input v-model="search.selected" type="text" placeholder="Search objects.." class="slds-input" />
+                        </div>
+                      </div>
+
+                      <div class="slds-dueling-list__options">
+                        <ul class="slds-listbox slds-listbox_vertical">
+
+                          <li v-on-click="removeObject(i, object)" v-for="(object, i) in sortedSelectedObjects" class="slds-listbox__item">
+                            <div class="slds-listbox__option slds-listbox__option_plain slds-media slds-media_small slds-media_inline">
+                              <span class="slds-media__body">
+                                <img src="{!URLFOR($Resource.UnravellerSLDSResources, 'slds/assets/icons/utility/delete_60.png')}"/>
+                                <span class="slds-truncate">{{ object }}</span>
+                              </span>
+                            </div>
+                          </li>
+
+                        </ul>
+                      </div>
+                    </div>
+                    
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top: 10px" class="slds-form-element">
+                <label class="slds-form-element__label" for="select-01">Select Label</label>
+                <div class="slds-form-element__control">
+                  <div class="slds-select_container">
+                    <select class="slds-select" v-model="target">
+                      <option v-bind-value="null">-- Select a target --</option>
+                      <option v-for="object in selectedObjects">{{ object }}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <button v-on-click="saveConfiguration()" v-bind-disabled="selectedObjects.length == 0 || target == null || name == ''" style="margin-top: 10px; width: 100%" class="slds-button slds-button_brand">
+                {{ popup.edit == true ? 'Update Configuration' : 'Start Unravelling' }}
+              </button>
+
+              <button v-if="configuration.Id" v-on-click="closePopups()"  style="margin-top: 10px; width: 100%" class="slds-button slds-button--neutral">
+                Cancel
+              </button>
+
+              <button v-if="!configuration.Id" v-on-click="popup.create = false; popup.selection = true"  style="margin-top: 10px; width: 100%" class="slds-button slds-button--neutral">
+                Back
+              </button>
+
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <span v-if="rendered == true" class="unravel-controls">
+        Hold the left mouse button to rotate.<br/>
+        Hold the right mouse button to pan.<br/>
+        Scroll the mouse wheel to zoom.<br/><br/>
+        Hover over any object or link to find out more.
+      </span>
+
+      <nav v-if="rendered == true" class="unravel-objects slds-nav-vertical">
+
+        <div class="unravel-objects-title">
+          <h1>
+            <span style="cursor: pointer" v-on-click.stop="popup.selection = true">
+              <img class="slds-button__icon" src="{!URLFOR($Resource.UnravellerSLDSResources, 'slds/assets/icons/utility/rows.svg')}"/>
+              <b style="padding-left: 5px">Unraveller</b>
+            </span>
+            <button title="Toggle all object transparency" v-on-click.stop="setAllGhost()" v-bind-style="{'opacity': ghost == true ? '0.5' : '1'}" class="slds-button slds-button_icon slds-float_right">
+              <img class="slds-button__icon" src="{!URLFOR($Resource.UnravellerSLDSResources, 'slds/assets/icons/utility/preview.svg')}"/>
+            </button>
+          </h1>
+        </div>
+
+        <div class="slds-nav-vertical__section">
+          <ul>
+            <li v-bind-title="o.target == true ? 'Rendering data model based on ' + o.label : 'Click to re-render data model based on ' + o.label" v-bind-class="{'slds-is-active': o.target == true}" class="slds-nav-vertical__item" v-for="o in sortedObjects">
+              <a v-on-click.stop="setTarget(o)" class="slds-nav-vertical__action">
+
+                <span>{{ o.label }}</span>
+
+                <button title="Toggle object transparency" v-on-click.stop="setGhost(o)" v-bind-style="{'opacity': o.ghost == true ? '0.5' : '1'}" class="slds-button slds-button_icon slds-float_right">
+                  <img class="slds-button__icon" src="{!URLFOR($Resource.UnravellerSLDSResources, 'slds/assets/icons/utility/preview_60.png')}"/>
+                </button>
+
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="unravel-objects-picker">
+          <button v-on-click="editConfiguration()" class="slds-button slds-button_neutral">Update Configuration</button>
+        </div>
+      </nav>
+
+      <div v-bind-style="{'pointer-events': popup.selection == true ? 'none' : 'all'}" id="unravel-canvas" class="unravel-canvas"></div>
+
+
+    </div>
+
+    <script type="text/javascript" src="{!URLFOR($Resource.UnravellerResources, 'js/modules/factory.js')}"></script>
+    <script type="text/javascript" src="{!URLFOR($Resource.UnravellerResources, 'js/modules/render.js')}"></script>
+    <script type="text/javascript" src="{!URLFOR($Resource.UnravellerResources, 'js/modules/mapper.js')}"></script>
+    <script type="text/javascript" src="{!URLFOR($Resource.UnravellerResources, 'js/modules/remote.js')}"></script>
+    <script type="text/javascript">
+      $Permission = '{!hasPermissions}';
+      $Globals = {
+        font: "{!URLFOR($Resource.UnravellerResources, 'font.json')}"
+      }
+      $Remote.setActions({
+        getObjects: '{!$RemoteAction.UnravelCore.getObjects}',
+        getObjectData: '{!$RemoteAction.UnravelCore.getObjectData}',
+        getConfigurations: '{!$RemoteAction.UnravelCore.getConfigurations}',
+        saveConfiguration: '{!$RemoteAction.UnravelCore.saveConfiguration}',
+        updateCount: '{!$RemoteAction.UnravelCore.updateCount}'
+      });
+    </script>
+
+    <script type="text/javascript" src="{!URLFOR($Resource.UnravellerResources, 'js/app.js')}"></script>
+    
+	</body>
+    
+</apex:page>

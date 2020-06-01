@@ -1,0 +1,17 @@
+# Without Sharing #
+
+Our 'UnravelCore' apex class needs to use 'without sharing' due to the fact 
+that this class needs to access the global schema describe methods to retrieve
+all the objects to be able to render them in the 'Unraveller' application.
+
+We have to be able to show all available object metadata regardless of permission 
+so we need the 'without sharing' keyword.
+
+For the other methods in the class, such as 'getConfiguration()' we are 
+actually enforcing CRUD sharing checks for each method individually outside 
+of the describe methods to make sure we are compliant with sharing on these
+records.
+
+We also use 'without sharing' on our 'UnravelStats' class - this is due to 
+the fact we need to update Feature Management Parameters, regardless of the 
+current user.

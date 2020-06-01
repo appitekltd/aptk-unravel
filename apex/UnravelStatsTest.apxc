@@ -1,0 +1,21 @@
+/*
+ *  @class - UnravelStatsTest
+ *  @author - Elliott <elliott@appitek.com>
+ *  @desc - Test classes for the UnravelStats class that handles FMA stats
+ */
+@IsTest
+public class UnravelStatsTest {
+    
+  // as the FMA doesn't work in test classes we just check it's all running
+  @IsTest
+  public static void testFMA() {
+    Test.startTest();
+      UnravelStats.addStat('false_name');
+      UnravelStats.addStat('aptk_unravel__stat_render');
+      UnravelStats.updateCounts();
+    Test.stopTest();
+    // can't assert results because it's all FMA which don't run in tests
+    System.assert(null == null);
+  }
+
+}

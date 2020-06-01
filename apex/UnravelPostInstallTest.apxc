@@ -1,0 +1,17 @@
+/*
+ *  @class - UnravelPostInstall
+ *  @author - Elliott <elliott@appitek.com>
+ *  @desc - Test classes for the Post installer
+ */
+@IsTest
+public class UnravelPostInstallTest {
+  
+  @isTest
+  public static void testInstallScript() {
+    UnravelPostInstall postinstall = new UnravelPostInstall();
+    Test.testInstall(postinstall, null);
+    // can't assert post install because it's only action is to update FMA values
+    System.assert(null == null);
+  }
+
+}

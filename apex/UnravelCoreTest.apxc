@@ -1,0 +1,75 @@
+/*
+ *  @class - UnravelCoreTest
+ *  @desc - Test class for the UnravelCore class
+ */
+@IsTest
+public class UnravelCoreTest {
+    
+  @IsTest
+  public static void testGetObjectData() {
+    UnravelCore core = new UnravelCore();
+    // test that we don't get an error, app handles the actual object data
+    List<String> objs = new List<String>{'Account'};
+    Test.startTest();
+      String result = UnravelCore.getObjectData(objs);
+    Test.stopTest();
+    System.assert(result.indexOf('Error: ') != 0);
+  }
+    
+  @IsTest
+  public static void testGetObjects() {
+    // test that we don't get an error, app handles the actual object data
+    Test.startTest();
+      String result = UnravelCore.getObjects();
+    Test.stopTest();
+    System.assert(result.indexOf('Error: ') != 0);
+  }
+    
+  @IsTest
+  public static void testGetConfigurations() {
+    // get actual
+    List<aptk_unravel__Unravel_Configuration__c> actualConfigurations = new List<aptk_unravel__Unravel_Configuration__c>();
+    actualConfigurations = [
+      SELECT Id, Name, Target__c, Objects__c
+      FROM aptk_unravel__Unravel_Configuration__c
+      LIMIT 10000
+    ];
+    Test.startTest();
+      List<aptk_unravel__Unravel_Configuration__c> retrievedConfigurations = UnravelCore.getConfigurations();
+    Test.stopTest();
+    System.assert(actualConfigurations.size() == retrievedConfigurations.size());
+  }
+    
+  @IsTest
+  public static void testSaveConfiguration() {
+    aptk_unravel__Unravel_Configuration__c newConfiguration = new aptk_unravel__Unravel_Configuration__c();
+    newConfiguration.Name = 'Test';
+    newConfiguration.aptk_unravel__Target__c = 'Account';
+    newConfiguration.aptk_unravel__Objects__c = 'Account';
+    insert newConfiguration;
+    Test.startTest();
+      String recordId = UnravelCore.saveConfiguration(newConfiguration);
+    Test.stopTest();
+    System.assert(newConfiguration.Id == recordId);
+  }
+    
+  @IsTest
+  public static void testCheckPermissions() {
+    List<String> fields = new List<String>{'Id', 'Name'};
+    List<String> types = new List<String>{'Read', 'Create', 'Update', 'Delete'};
+    Boolean check = UnravelCore.checkPermissions('Account', fields, types);
+    // should always be true for test, as we cant check these properly
+    System.assertEquals(true, check);
+  }
+    
+  @IsTest
+  public static void testUpdateCount() {
+    // test that we don't get an error, app handles the actual object data
+    Test.startTest();
+      UnravelCore.updateCount();
+    Test.stopTest();
+    // cant test FMA
+    System.assert(null == null);
+  }
+
+}

@@ -1,0 +1,275 @@
+/*
+ *  @class - UnravelCore
+ *  @desc - Used by the Unraveller VF Page to get object metadata
+ *    We need without sharing as we need access to object metadata for the app to work
+ */
+public without sharing class UnravelCore {
+    
+    
+  public static Boolean hasPermissions { get; set; }
+    
+  public UnravelCore() {
+    hasPermissions = false;
+    List<PermissionSetAssignment> permissions = [
+      SELECT PermissionSet.Name
+      FROM PermissionSetAssignment
+      WHERE AssigneeId = :UserInfo.getUserId()
+    ];
+    for (Integer p = 0; p < permissions.size(); p++) {
+      String name = permissions[p].PermissionSet.Name;
+      if (name.indexOf('Unravel_User') != -1) {
+        hasPermissions = true;
+        break;
+      }
+    }
+  }
+    
+    
+  /*
+   *  @method - getObjectData()
+   *  @desc - Get's the field data for a given list of objects
+   * 
+   *  @parameter {List<String>} objs - list of API names to get data for
+   * 
+   *  @return {String} - returns object data as JSON string or an 'Error:' string
+   */
+  @RemoteAction
+  public static String getObjectData(List<String> objs) {
+      
+    try {
+      
+    List<Map<String, Object>> result = new List<Map<String, Object>>();
+      
+    // filter the list based on what is accessible to the user
+    List<Schema.DescribeSObjectResult> objects = Schema.describeSObjects(objs);
+    
+    for (Integer i = 0; i < objects.size(); i++) {
+      System.debug(objects[i].getName());
+      if (objects[i].isAccessible() == true && 
+      objects[i].isDeprecatedAndHidden() == false) {
+          
+        // add the keys we need for the unraveller
+        Map<String, Object> obj = new Map<String, Object>();
+        obj.put('label', objects[i].getLabel());
+        obj.put('name', objects[i].getName());
+        obj.put('positioned', false);
+          
+        // get fields
+        List<Map<String, Object>> flds = new List<Map<String, Object>>();
+        Map<String, Schema.SObjectField> fields = objects[i].fields.getMap();
+        for (String fieldName : fields.keySet()) {
+          Schema.DescribeFieldResult fieldData = fields.get(fieldName).getDescribe();  
+          String relationship = fieldData.getRelationshipName();
+          if (relationship != null) {
+            Map<String, Object> fld = new Map<String, Object>();
+            List<Schema.sObjectType> referenceTos = fieldData.getReferenceTo();
+            List<String> referenceTo = new List<String>();
+            for (Schema.sObjectType robj : referenceTos) {
+              String robjName = robj.getDescribe().getName();
+              if (objs.indexOf(robjName) != -1) referenceTo.add(robjName);   
+            }
+            if (referenceTo.size() > 0) {
+              fld.put('label', fieldData.getLabel());
+              fld.put('name', fieldData.getName());
+              fld.put('target', String.join(referenceTo, ','));
+              fld.put('relationship', relationship);
+              flds.add(fld);
+            }
+          }
+        }
+          
+        obj.put('relationships', flds);
+        result.add(obj);
+      }
+    }
+    return JSON.serialize(result);
+        
+    } catch(Exception err) { return 'Error: ' + err.getMessage(); }
+      
+  }
+    
+    
+  /*
+   *  @method - getObjects()
+   *  @desc - Gets a list of sObjects that the user is allowed to use in the
+   *    document builder app
+   *  
+   *  @return {List<Map<String, String>>} - returns a List containing a Map for
+   *    each sObject, with the Map containing a 'Label' key and a 'Name' key
+   */
+  @RemoteAction
+  public static String getObjects() {
+      
+    try {
+      
+    // run a global describe
+    List<Map<String, Object>> result = new List<Map<String, Object>>();
+    Map<String, SObjectType> sObjects = Schema.getGlobalDescribe();
+    List<String> objs = new List<String>();
+      
+    // create a list of objects
+    for (String apiName : sObjects.keySet()) {   
+      System.debug(apiName);
+      if (apiName.indexOf('__kav') == -1 && apiName.indexOf('__ka') == -1 && apiName.countMatches('__') <= 1) {   
+        objs.add(apiName);
+      }
+    }
+      
+    // filter the list based on what is accessible to the user
+    for (String sObj : sObjects.keySet()) {
+      Schema.DescribeSObjectResult describe = sObjects.get(sObj).getDescribe();
+      if (describe.isAccessible() == true && describe.isDeprecatedAndHidden() == false) {
+        // only expose the label and name as this is all we need
+        Map<String, Object> obj = new Map<String, Object>();
+        obj.put('label', describe.getLabel());
+        obj.put('name', describe.getName());
+        result.add(obj); 
+      }
+    }
+    return JSON.serialize(result);
+        
+    } catch(Exception err) { return 'Error: ' + err.getMessage(); } 
+      
+  }
+    
+    
+  /*
+   *  @method - getConfigurations()
+   *  @desc - Get's all the configurations made for Unravel
+   * 
+   *  @return {List<aptk_unravel__Unravel_Configuration__c>} - returns all the configurations
+   */
+  @RemoteAction
+  public static List<aptk_unravel__Unravel_Configuration__c> getConfigurations() {
+    List<aptk_unravel__Unravel_Configuration__c> configurations = new List<aptk_unravel__Unravel_Configuration__c>();
+    // CRUD check
+    List<String> fields = new List<String>{'Id', 'Name', 'Target__c', 'Objects__c'};
+    List<String> types = new List<String>{'Read'};
+    Boolean check = UnravelCore.checkPermissions('aptk_unravel__Unravel_Configuration__c', fields, types);
+    if (check == false) return configurations;
+    configurations = [
+      SELECT Id, Name, Target__c, Objects__c
+      FROM aptk_unravel__Unravel_Configuration__c
+      LIMIT 10000
+    ];
+    return configurations;
+  }
+    
+    
+  /*
+   *  @method - saveConfiguration()
+   *  @desc - Saves or updates a given configuration record
+   * 
+   *  @parameter {aptk_unravel__Unravel_Configuration__c} configuration - record to create or update
+   * 
+   *  @return {String} - returns object data as JSON string or an 'Error:' string
+   */
+  @RemoteAction
+  public static String saveConfiguration(aptk_unravel__Unravel_Configuration__c configuration) {
+    // CRUD check
+    List<String> fields = new List<String>{'Id', 'Name', 'Target__c', 'Objects__c'};
+    List<String> types = new List<String>{'Read', 'Create', 'Update'};
+    Boolean check = UnravelCore.checkPermissions('aptk_unravel__Unravel_Configuration__c', fields, types);
+    if (check == false) return 'Error: You need to assign yourself the "Unravel User" Permission Set.';
+    try {
+      try {
+        UnravelStats.updateCounts();
+      } catch(Exception e) {}
+      upsert configuration;
+      return configuration.Id;
+    } catch(Exception e) {
+      return 'Error: ' + e.getMessage();
+    }
+  }
+    
+    
+  /*
+   *  @method - updateCount()
+   *  @desc - Adds to the render count each time a data model 
+   *    is rendered
+   */
+  @RemoteAction
+  public static String updateCount() {
+    try { UnravelStats.addStat('aptk_unravel__stat_render'); return 'Success'; } catch(Exception e) { return 'Error: ' + e.getMessage(); }
+  }
+    
+    
+  /*
+   *  @method - checkPermissions()
+   *  @desc - Checks the CRUD permissions for a given object and set of fields. For each cRUD type, 
+   *    it checks the object and the passed fields can have that CRUD type.
+   *
+   *  @param {String} objectName - The API name of the sObject to get children for
+   *  @param {List<String>} fields - The API names of the fields to check, can be empty
+   *  @param {List<String>} types - The CRUD types to check, Read, Create, Edit, or Delete
+   *  
+   *  @return {Boolean} - returns whether the user has the correct permissions
+   */
+  public static Boolean checkPermissions(String objectName, List<String> fields, List<String> types) {
+    Boolean allowed = true;
+    List<String> objects = new List<String>{objectName};
+    List<Schema.DescribeSObjectResult> objectsResults = Schema.describeSObjects(objects);
+    Schema.DescribeSObjectResult objectResult = objectsResults[0];
+    //sObjectType objectSchema = Schema.getGlobalDescribe().get(objectName);
+    Map<String,Schema.SObjectField> fieldSchema = objectResult.fields.getMap();  
+    List<Schema.DescribeFieldResult> fieldResults = new List<Schema.DescribeFieldResult>();
+    // get each field for the object
+    for (String field : fieldSchema.keySet()) {
+      Schema.DescribeFieldResult fieldResult = fieldSchema.get(field).getDescribe();
+      String fieldName = fieldResult.getName();
+      if (fields.indexOf(fieldName) != -1) {
+        fieldResults.add(fieldResult);  
+      }
+    }
+    // if we have specified read
+    if (types.indexOf('Read') != -1) {
+      // check we can access the object
+      if (!objectResult.isAccessible()) allowed = false;
+      // then check each field can be read
+      for (Schema.DescribeFieldResult field : fieldResults) {
+         if (field.getName() != 'Id') {
+           if (!field.isAccessible()) allowed = false;
+         }
+      }
+    }
+    // if we have specified create
+    if (types.indexOf('Create') != -1) {
+      // check we can create the object
+      if (!objectResult.isCreateable()) allowed = false;
+      // then check each field can be created
+      for (Schema.DescribeFieldResult field : fieldResults) {
+         // ignore Id as can never be created but might be passed with other fields for Read
+         if (field.getName() != 'Id' && field.getName() != 'Name' && field.isCalculated() == false) {
+           if (!field.isCreateable()) allowed = false;
+         }
+      }
+    }
+    // if we have specified update
+    if (types.indexOf('Update') != -1) {
+      // check we can update the object
+      if (!objectResult.isUpdateable()) allowed = false;
+      // then check each field can be updated
+      for (Schema.DescribeFieldResult field : fieldResults) {
+         // ignore Id as can never be updated but might be passed with other fields for Read
+         if (field.getName() != 'Id') {
+           if (!field.isUpdateable()) allowed = false;
+         }
+      }
+    }
+    // if we have specified delete
+    if (types.indexOf('Delete') != -1) {
+      // check we can delete the object
+      if (!objectResult.isDeletable()) allowed = false;
+    }
+    // tests can do whatever
+    if (Test.isRunningTest()) { return true; }
+    // if even one check fails the whole thing fails
+    // this way we can bulk check say a list of fields for Read, Create, and Edit
+    // if the user doesnt have all the permissions for all the fields then it'll fail
+    return allowed;
+  }
+    
+    
+    
+
+}

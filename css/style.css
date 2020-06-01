@@ -1,0 +1,226 @@
+html, 
+body {
+  margin: 0;
+  background: #1f3f6f !important;
+  overflow: hidden;
+}
+
+
+.unravel-canvas {
+  position: absolute;
+  left: 200px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+.unravel-canvas,
+canvas { 
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  width: 100%; 
+  height: 100% 
+}
+
+.slds-spinner_container {
+  background: none !important;
+  text-align: center;
+  line-height: calc(100vh + 80px);
+  pointer-events: none;
+}
+.slds-spinner_container.alt span {
+  position: fixed;
+  top: 20px;
+  line-height: 0px;
+  right: 20px;
+}
+
+.unravel-objects {
+  position: absolute !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  left: 0;
+  margin: 0;
+  list-style: none;
+  padding: 0;
+  z-index: 10;
+  top: 0;
+  width: 200px;
+  bottom: 0;
+  background: #ffffff;
+  border-right: 1px solid #dddbda;
+}
+.unravel-objects-title {
+  height: 50px;
+  width: 100%;
+  line-height: 50px;
+  background: rgb(22, 50, 92);
+  color: #fff;
+  padding-left: 20px;
+  letter-spacing: 0.3px;
+  font-size: 14px;
+}
+.unravel-objects-title div {
+  margin-right: 6px;
+  width: 16px;
+  height: 16px;
+}
+.unravel-objects-title div img {
+  width: 16px;
+  height: 16px;
+}
+.unravel-objects .slds-nav-vertical__action {
+  padding: 5px 10px;
+  position: relative;
+}
+.unravel-objects .slds-nav-vertical__action span {
+  margin-left: 10px;
+  font-size: 13px;
+}
+.unravel-objects .slds-nav-vertical__action button {
+  position: absolute;
+  right: 10px;
+}
+.unravel-objects-target {
+  padding: 10px;
+}
+.unravel-objects .slds-nav-vertical__section {
+  position: absolute;
+  margin: 0px !important;
+  top: 50px;
+  bottom: 52px;
+  left: 0;
+  right: 0;
+  overflow: auto;
+}
+.unravel-objects-picker {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  padding: 10px;
+}
+.unravel-objects-picker button {
+  width: 100%;
+}
+
+
+.unravel-preview {
+  position: absolute !important;
+  top: 20px;
+  border: 1px solid #dddbda !important;
+  right: 20px;
+  padding: 10px !important;
+  width: 200px;
+  z-index: 100;
+  box-shadow: none !important;
+}
+.unravel-preview p {
+  opacity: 0.75;
+}
+
+.unravel-selection {
+  width: 100%;
+  background: rgba(22, 50, 92, 0.8);
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  z-index: 100;
+}
+.unravel-selection .slds-card {
+  border: 1px solid #dddbda !important;
+  background: #fff;
+  padding: 10px !important;
+  box-shadow: none !important;
+  max-width: 524px;
+  font-size: 0.812rem;
+  color: #080707;
+  line-height: 1.5;
+  margin: auto;
+}
+
+.slds-listbox__option {
+  user-select: none;
+}
+
+.slds-dueling-list__options, .slds-picklist__options {
+  padding: 0 0 0 0 !important;
+  position: relative;
+}
+.slds-dueling-list__column .slds-form-element input {
+  border-bottom: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.slds-dueling-list__options {
+  border-top-right-radius: 0 !important;
+  border-top-left-radius: 0 !important;
+}
+.slds-dueling-list__options ul li img {
+  height: 12px;
+  width: 12px;
+  margin-right: 4px;
+}
+
+.unravel-objects-title button {
+  padding: 16px 10px;
+}
+
+.slds-nav-vertical__section .slds-nav-vertical__action span {
+  white-space: pre;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  display: block;
+  width: calc(100% - 34px);
+}
+
+.slds-listbox__item .slds-media__body span {
+  white-space: pre;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 30px;
+  line-height: 30px;
+  padding-left: 30px
+
+}
+.slds-listbox__item {
+  position: relative;
+  height: 30px;
+}
+
+.unravel-controls {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  color: #fff;
+  z-index: 100;
+  text-align: right;
+}
+
+.unravel-options {
+  max-height: 300px;
+  margin: 10px 0;
+  overflow: auto;
+  border: 1px solid #dddbda;
+  border-radius: 0.25rem;
+}
+.unravel-options li {
+  height: 30px;
+  line-height: 30px;
+  cursor: pointer;
+  padding: 0 10px;
+}
+.unravel-options li:not(:last-child) {
+  border-bottom: 1px solid #eee;
+}
+.unravel-options li:hover {
+  background: #f4f6f9;
+}
