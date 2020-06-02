@@ -1,3 +1,6 @@
+// hardcoded list of object names to colors from the Salesforce Lightning 
+// Design System so we can try and get as close to standard icon colors as 
+// possible for our object 'cubes'
 var $Colors = {
   "custom110": "#f28b00",
   "custom100": "#e15d76",

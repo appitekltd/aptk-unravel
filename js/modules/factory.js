@@ -1,8 +1,16 @@
+/*
+ *  @module - $Factory
+ *  @desc - Used to create object classes
+ */
 var $Factory = (function() {
   'use strict';
-
   return {
 
+
+    /*
+     *  @class - sObject
+     *  @desc - Represents an sObject in the 3D space
+     */
     sObject: function(x, y, z, object) {
       this.x = x;
       this.y = y;
@@ -54,6 +62,11 @@ var $Factory = (function() {
     
     },
 
+
+    /*
+     *  @class - Link
+     *  @desc - Represents a link between sObjects
+     */
     Link: function(link, ref, o) {
       this.label = link.label;
       this.name = link.name;
@@ -63,6 +76,6 @@ var $Factory = (function() {
       this.selected = false;
     }
 
-  }
 
+  }
 }());
