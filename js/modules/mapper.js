@@ -1,6 +1,6 @@
 /*
  *  @module - $Mapper
- *  @desc - A horrible module used to create the 3D map for a given 
+ *  @desc - A horrific module used to create the 3D map for a given 
  *    set of related or unrelated objects
  */
 var $Mapper = (function() {
